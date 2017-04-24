@@ -95,7 +95,7 @@ vec4 bg=vec4(0);
 vec4 fg=vec4(1);
 void main() {
 	vec2 u=gl_FragCoord.xy/R*2.-1.;
-	u.x*=R.x/R.y;u.x-=.5;u/=Z;u-=C;
+	u.x*=R.x/R.y;u/=Z;u-=C;
 	vec2 z=vec2(0);
 	int s=0;
 	for (int i=0;i<200;i++) {
