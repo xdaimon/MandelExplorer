@@ -107,7 +107,19 @@ void main() {
 	c = mix(bg,fg,float(s)/200.);
 }
 )";
-bool compile_shader() {
+int main() {
+	glfwInit();
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	GLFWwindow* window = glfwCreateWindow(wwidth, wheight, "float me", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glfwSetWindowSizeCallback(window, window_size_callback);
+	glfwSwapInterval(1);
+	glewExperimental = GL_TRUE;
+	glewInit();
+	glViewport(0, 0, wwidth, wheight);
+	glfwSetKeyCallback(window, key_callback);
 	GLuint vs, gs, fs;
 	auto cs = [](char* s, GLuint& sn, GLenum stype) {
 		sn = glCreateShader(stype);
@@ -126,65 +138,24 @@ bool compile_shader() {
 			glDeleteShader(sn);
 			return false;
 		}
+		return true;
 	};
-	cs((char*)VERT.data(), vs, GL_VERTEX_SHADER);
-	cs((char*)GEOM.data(), gs, GL_GEOMETRY_SHADER);
-	cs((char*)FRAG.data(), fs, GL_FRAGMENT_SHADER);
-	GLuint gfx_program = glCreateProgram();
-	glAttachShader(gfx_program, gs);
-	glAttachShader(gfx_program, fs);
-	glAttachShader(gfx_program, vs);
-	glLinkProgram(gfx_program);
-	GLint isLinked = 0;
-	glGetProgramiv(gfx_program, GL_LINK_STATUS, (int *)&isLinked);
-	if(isLinked == GL_FALSE) {
-		GLint maxLength = 0;
-		glGetProgramiv(gfx_program, GL_INFO_LOG_LENGTH, &maxLength);
-		std::vector<GLchar> infoLog(maxLength);
-		glGetProgramInfoLog(gfx_program, maxLength, &maxLength, &infoLog[0]);
-		for (auto c : infoLog)
-			cout << c;
-		cout << endl;
-		glDeleteProgram(gfx_program);
-		glDeleteShader(vs);
-		glDeleteShader(fs);
-		glDeleteShader(gs);
-		return false;
-	}
-	return true;
-}
-int main() {
-	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	GLFWwindow* window = glfwCreateWindow(wwidth, wheight, "float me", NULL, NULL);
-	glfwMakeContextCurrent(window);
-	glfwSetWindowSizeCallback(window, window_size_callback);
-	glfwSwapInterval(1);
-	glewExperimental = GL_TRUE;
-	glewInit();
-	glViewport(0, 0, wwidth, wheight);
-	glfwSetKeyCallback(window, key_callback);
-	compile_shader();
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-	glClearColor(0., 0., 0., 1.);
-	GLuint vbo;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	int point_indices[1]={0};
-	glBufferData(GL_ARRAY_BUFFER, sizeof(int), point_indices, GL_STATIC_DRAW);
+	if (!cs((char*)VERT.data(), vs, GL_VERTEX_SHADER)
+	|| !cs((char*)GEOM.data(), gs, GL_GEOMETRY_SHADER)
+	|| !cs((char*)FRAG.data(), fs, GL_FRAGMENT_SHADER)) return 0;
+	GLuint prg = glCreateProgram();
+	glAttachShader(prg, fs);glAttachShader(prg, gs);glAttachShader(prg, vs);
+	glLinkProgram(prg);
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 	glEnableVertexAttribArray(0);
 	glVertexAttribIPointer(0, 1, GL_INT, 0, NULL);
-	GLint resolution_U = glGetUniformLocation(gfx_program, "R");
-	GLint center_U = glGetUniformLocation(gfx_program, "C");
-	GLint zoom_U = glGetUniformLocation(gfx_program, "Z");
-	glUseProgram(gfx_program);
+	GLint resolution_U = glGetUniformLocation(prg, "R");
+	GLint center_U = glGetUniformLocation(prg, "C");
+	GLint zoom_U = glGetUniformLocation(prg, "Z");
+	glUseProgram(prg);
+	glClearColor(0., 0., 0., 1.);
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT);
 		glUniform2f(resolution_U, float(wwidth), float(wheight));
