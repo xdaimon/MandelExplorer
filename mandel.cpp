@@ -71,20 +71,20 @@ uniform vec2 R;
 uniform float Z;
 uniform vec2 C;
 out vec4 c;
-vec4 bg=vec4(0.);
-vec4 fg=vec4(0.,204./255.,1.,1.);
+vec4 bg=vec4(0);
+vec4 fg=vec4(1);
 void main() {
 	vec2 u=gl_FragCoord.xy/R*2.-1.;
 	u.x*=R.x/R.y;u.x-=.5;u/=Z;u-=C;
 	vec2 z=vec2(0);
 	int s=0;
-	for (int i=0;i<64;i++) {
+	for (int i=0;i<200;i++) {
 		z = vec2(z.x*z.x-z.y*z.y, 2.*z.x*z.y);
 		z += u;
 		if (dot(z,z)>4.) break;
 		s++;
 	}
-	c = mix(bg,fg,float(s)/64.);
+	c = mix(bg,fg,float(s)/200.);
 }
 )";
 bool compile_shader() {
