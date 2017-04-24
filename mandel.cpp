@@ -88,77 +88,28 @@ void main() {
 }
 )";
 bool compile_shader() {
-	// Create fullscreen shader to display output
-	GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-	char* s0 = (char*)VERT.data();
-	glShaderSource(vs, 1, &s0, NULL);
-	glCompileShader(vs);
-
-	GLint isCompiled = 0;
-	glGetShaderiv(vs, GL_COMPILE_STATUS, &isCompiled);
-	if(isCompiled == GL_FALSE) {
-		GLint maxLength = 0;
-		glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &maxLength);
-
-		// The maxLength includes the NULL character
-		std::vector<GLchar> errorLog(maxLength);
-		glGetShaderInfoLog(vs, maxLength, &maxLength, &errorLog[0]);
-
-		for (auto c : errorLog)
-			cout << c;
-		cout << endl;
-
-		glDeleteShader(vs); // Don't leak the shader.
-		return false;
-	}
-
-	char* s1 = (char*)FRAG.data();
-	GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fs, 1, &s1, NULL);
-	glCompileShader(fs);
-
-	isCompiled = 0;
-	glGetShaderiv(fs, GL_COMPILE_STATUS, &isCompiled);
-	if(isCompiled == GL_FALSE) {
-		GLint maxLength = 0;
-		glGetShaderiv(fs, GL_INFO_LOG_LENGTH, &maxLength);
-
-		// The maxLength includes the NULL character
-		std::vector<GLchar> errorLog(maxLength);
-		glGetShaderInfoLog(fs, maxLength, &maxLength, &errorLog[0]);
-
-		for (auto c : errorLog)
-			cout << c;
-		cout << endl;
-
-		glDeleteShader(fs); // Don't leak the shader.
-		return false;
-	}
-
-
-	char* s2 = (char*)GEOM.data();
-	GLuint gs = glCreateShader(GL_GEOMETRY_SHADER);
-	glShaderSource(gs, 1, &s2, NULL);
-	glCompileShader(gs);
-
-	isCompiled = 0;
-	glGetShaderiv(gs, GL_COMPILE_STATUS, &isCompiled);
-	if(isCompiled == GL_FALSE) {
-		GLint maxLength = 0;
-		glGetShaderiv(gs, GL_INFO_LOG_LENGTH, &maxLength);
-
-		// The maxLength includes the NULL character
-		std::vector<GLchar> errorLog(maxLength);
-		glGetShaderInfoLog(gs, maxLength, &maxLength, &errorLog[0]);
-
-		for (auto c : errorLog)
-			cout << c;
-		cout << endl;
-
-		glDeleteShader(gs); // Don't leak the shader.
-		return false;
-	}
-
+	GLuint vs, gs, fs;
+	auto cs = [](char* s, GLuint& sn, GLenum stype) {
+		sn = glCreateShader(stype);
+		glShaderSource(sn, 1, &s, NULL);
+		glCompileShader(sn);
+		GLint isCompiled = 0;
+		glGetShaderiv(sn, GL_COMPILE_STATUS, &isCompiled);
+		if(isCompiled == GL_FALSE) {
+			GLint maxLength = 0;
+			glGetShaderiv(sn, GL_INFO_LOG_LENGTH, &maxLength);
+			std::vector<GLchar> errorLog(maxLength);
+			glGetShaderInfoLog(sn, maxLength, &maxLength, &errorLog[0]);
+			for (auto c : errorLog)
+				cout << c;
+			cout << endl;
+			glDeleteShader(sn);
+			return false;
+		}
+	};
+	cs((char*)VERT.data(), vs, GL_VERTEX_SHADER);
+	cs((char*)GEOM.data(), gs, GL_GEOMETRY_SHADER);
+	cs((char*)FRAG.data(), fs, GL_FRAGMENT_SHADER);
 	gfx_program = glCreateProgram();
 	glAttachShader(gfx_program, gs);
 	glAttachShader(gfx_program, fs);
@@ -169,25 +120,17 @@ bool compile_shader() {
 	if(isLinked == GL_FALSE) {
 		GLint maxLength = 0;
 		glGetProgramiv(gfx_program, GL_INFO_LOG_LENGTH, &maxLength);
-
-		//The maxLength includes the NULL character
 		std::vector<GLchar> infoLog(maxLength);
 		glGetProgramInfoLog(gfx_program, maxLength, &maxLength, &infoLog[0]);
-
 		for (auto c : infoLog)
 			cout << c;
 		cout << endl;
-
-		//We don't need the program anymore.
 		glDeleteProgram(gfx_program);
-		//Don't leak shaders either.
 		glDeleteShader(vs);
 		glDeleteShader(fs);
 		glDeleteShader(gs);
-
 		return false;
 	}
-
 	return true;
 }
 void init_graphics() {
@@ -206,7 +149,7 @@ void init_graphics() {
 	compile_shader();
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE); // for nice lines?
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	glClearColor(0., 0., 0., 1.);
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
