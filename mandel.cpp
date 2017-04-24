@@ -5,22 +5,42 @@
 #include <GLFW/glfw3.h>
 using std::cout;
 using std::endl;
-static GLFWwindow* window;
 static int wwidth = 500;
 static int wheight = 500;
-static GLuint gfx_program;
-static GLuint vbo;
-static GLint resolution_U;
-static GLint zoom_U;
-static GLint center_U;
-static char cmd = 0;
+static float zoom = 1.0;
+static float centerX = 0.0;
+static float centerY = 0.0;
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (action != GLFW_PRESS) return;
 	if (key == GLFW_KEY_ESCAPE)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 	if (key == GLFW_KEY_Q)
 		glfwSetWindowShouldClose(window, GL_TRUE);
-	cmd = key - GLFW_KEY_A + 'a';
+	switch (key - GLFW_KEY_A + 'a') {
+	case 'a':
+		centerX += .5/zoom;
+		break;
+	case 'd':
+		centerX -= .5/zoom;
+		break;
+	case 'w':
+		centerY -= .5/zoom;
+		break;
+	case 's':
+		centerY += .5/zoom;
+		break;
+	case 'z':
+		zoom *= 2.;
+		break;
+	case 'x':
+		zoom /= 2.;
+		break;
+	case 'r':
+		zoom = 1.0;
+		centerX = 0.0;
+		centerY = 0.0;
+		break;
+	}
 }
 static void window_size_callback(GLFWwindow* window, int width, int height) {
 	wwidth = width;
@@ -110,7 +130,7 @@ bool compile_shader() {
 	cs((char*)VERT.data(), vs, GL_VERTEX_SHADER);
 	cs((char*)GEOM.data(), gs, GL_GEOMETRY_SHADER);
 	cs((char*)FRAG.data(), fs, GL_FRAGMENT_SHADER);
-	gfx_program = glCreateProgram();
+	GLuint gfx_program = glCreateProgram();
 	glAttachShader(gfx_program, gs);
 	glAttachShader(gfx_program, fs);
 	glAttachShader(gfx_program, vs);
@@ -133,12 +153,12 @@ bool compile_shader() {
 	}
 	return true;
 }
-void init_graphics() {
+int main() {
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	window = glfwCreateWindow(wwidth, wheight, "float me", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(wwidth, wheight, "float me", NULL, NULL);
 	glfwMakeContextCurrent(window);
 	glfwSetWindowSizeCallback(window, window_size_callback);
 	glfwSwapInterval(1);
@@ -151,6 +171,7 @@ void init_graphics() {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	glClearColor(0., 0., 0., 1.);
+	GLuint vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	int point_indices[1]={0};
@@ -160,49 +181,11 @@ void init_graphics() {
 	glBindVertexArray(vao);
 	glEnableVertexAttribArray(0);
 	glVertexAttribIPointer(0, 1, GL_INT, 0, NULL);
-	resolution_U = glGetUniformLocation(gfx_program, "R");
-	center_U = glGetUniformLocation(gfx_program, "C");
-	zoom_U = glGetUniformLocation(gfx_program, "Z");
+	GLint resolution_U = glGetUniformLocation(gfx_program, "R");
+	GLint center_U = glGetUniformLocation(gfx_program, "C");
+	GLint zoom_U = glGetUniformLocation(gfx_program, "Z");
 	glUseProgram(gfx_program);
-}
-int main() {
-	float zoom = 1.0;
-	float centerX = 0.0;
-	float centerY = 0.0;
-	init_graphics();
 	while (!glfwWindowShouldClose(window)) {
-		switch (cmd) {
-		case 'a':
-			centerX += .1/zoom;
-			centerX += .1/zoom;
-			break;
-		case 'd':
-			centerX -= .1/zoom;
-			centerX -= .1/zoom;
-			break;
-		case 'w':
-			centerY -= .1/zoom;
-			centerY -= .1/zoom;
-			break;
-		case 's':
-			centerY += .1/zoom;
-			centerY += .1/zoom;
-			break;
-		case 'z':
-			zoom *= 2.;
-			break;
-		case 'x':
-			zoom /= 2.;
-			break;
-		case 'r':
-			zoom = 1.0;
-			centerX = 0.0;
-			centerY = 0.0;
-			break;
-		case 'q':
-			return 0;
-		}
-		cmd = 0;
 		glClear(GL_COLOR_BUFFER_BIT);
 		glUniform2f(resolution_U, float(wwidth), float(wheight));
 		glUniform2f(center_U, centerX, centerY);
